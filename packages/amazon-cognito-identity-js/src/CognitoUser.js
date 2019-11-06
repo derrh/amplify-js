@@ -249,6 +249,10 @@ export default class CognitoUser {
 		}
 
 		authParameters.USERNAME = this.username;
+		const secretHash = this.pool.computeSecretHash(ths.username);
+		if (secretHash) {
+			authParameters.SECRET_HASH = secretHash;
+		}
 		authenticationHelper.getLargeAValue((errOnAValue, aValue) => {
 			// getLargeAValue callback start
 			if (errOnAValue) {
@@ -319,6 +323,10 @@ export default class CognitoUser {
 							challengeParameters.SECRET_BLOCK;
 						challengeResponses.TIMESTAMP = dateNow;
 						challengeResponses.PASSWORD_CLAIM_SIGNATURE = signatureString;
+
+						if (secretHash) {
+							challengeResponses.SECRET_HASH = secretHash;
+						}
 
 						if (this.deviceKey != null) {
 							challengeResponses.DEVICE_KEY = this.deviceKey;
@@ -772,6 +780,10 @@ export default class CognitoUser {
 			ForceAliasCreation: forceAliasCreation,
 			ClientMetadata: clientMetadata,
 		};
+		const secretHash = this.pool.computeSecretHash(this.username);
+		if (secretHash) {
+			jsonReq.SecretHash = secretHash;
+		}
 		if (this.getUserContextData()) {
 			jsonReq.UserContextData = this.getUserContextData();
 		}
@@ -1377,6 +1389,10 @@ export default class CognitoUser {
 	refreshSession(refreshToken, callback, clientMetadata) {
 		const authParameters = {};
 		authParameters.REFRESH_TOKEN = refreshToken.getToken();
+		const clientSecret = this.pool.getClientSecret();
+		if (clientSecret) {
+			authParameters.SECRET_HASH = clientSecret;
+		}
 		const keyPrefix = `CognitoIdentityServiceProvider.${this.pool.getClientId()}`;
 		const lastUserKey = `${keyPrefix}.LastAuthUser`;
 

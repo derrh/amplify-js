@@ -290,6 +290,7 @@ declare module 'amazon-cognito-identity-js' {
 	export interface ICognitoUserPoolData {
 		UserPoolId: string;
 		ClientId: string;
+		ClientSecret?: string;
 		endpoint?: string;
 		Storage?: ICognitoStorage;
 	}

@@ -26,6 +26,7 @@ export default class CognitoUserPool {
 	 * @param {object} data Creation options.
 	 * @param {string} data.UserPoolId Cognito user pool id.
 	 * @param {string} data.ClientId User pool application client id.
+	 * @param {string} data.ClientSecret Optional client secret.
 	 * @param {object} data.Storage Optional storage object.
 	 * @param {boolean} data.AdvancedSecurityDataCollectionFlag Optional:
 	 *        boolean flag indicating if the data collection is enabled
@@ -36,6 +37,7 @@ export default class CognitoUserPool {
 		const {
 			UserPoolId,
 			ClientId,
+			ClientSecret,
 			endpoint,
 			AdvancedSecurityDataCollectionFlag,
 		} = data || {};
@@ -49,6 +51,7 @@ export default class CognitoUserPool {
 
 		this.userPoolId = UserPoolId;
 		this.clientId = ClientId;
+		this.clientSecret = ClientSecret;
 
 		this.client = new Client(region, endpoint);
 
@@ -74,6 +77,29 @@ export default class CognitoUserPool {
 	 */
 	getClientId() {
 		return this.clientId;
+	}
+
+	/**
+	 * @returns {string | undefined} the client secret if there is one
+	 */
+	getClientSecret() {
+		return this.clientSecret;
+	}
+
+	/**
+	 * Computes the secret hash for client IDs with a secret
+	 * @param {string} username username for user authenticating
+	 * @returns bas64 encoded secret hash if required (if there is a client secret)
+	 * null otherwise
+	 */
+	computeSecretHash(username) {
+		if (!this.getClientSecret()) {
+			return null;
+		}
+		const message = username + this.getClientId();
+		return CryptoJS.HmacSHA256(message, this.getClientSecret()).toString(
+			CryptoJS.enc.Base64
+		);
 	}
 
 	/**
@@ -109,6 +135,10 @@ export default class CognitoUserPool {
 		};
 		if (this.getUserContextData(username)) {
 			jsonReq.UserContextData = this.getUserContextData(username);
+		}
+		const secretHash = this.computeSecretHash(username);
+		if (secretHash) {
+			jsonReq.SecretHash = secretHash;
 		}
 		this.client.request('SignUp', jsonReq, (err, data) => {
 			if (err) {
